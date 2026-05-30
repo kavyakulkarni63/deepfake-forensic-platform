@@ -382,35 +382,65 @@ core_alerts = [
 
 @app.post("/api/auth/login", response_model=LoginResponse)
 async def login(req: LoginRequest):
-    creds = CREDENTIALS.get(req.username)
+    """
+    Demo-friendly login for review.
+    Any email/Gmail and any non-empty password will be accepted.
+    Existing users keep their saved role. New users are created as operative users.
+    """
+    username = (req.username or "").strip()
+    password = (req.password or "").strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    if not password:
+        raise HTTPException(status_code=400, detail="Password is required")
+
+    # If the user already exists, use existing profile but do not block login due to password mismatch.
+    creds = CREDENTIALS.get(username)
+
+    # Also allow login using stored email value, not only dictionary key.
     if not creds:
-        # Fallback to check if username matches the email field
-        for k, v in CREDENTIALS.items():
-            if v.get("email") == req.username:
-                creds = v
-                req.username = k
+        for key, value in CREDENTIALS.items():
+            if value.get("email", "").lower() == username.lower():
+                creds = value
+                username = key
                 break
 
-    if not creds or creds["password"] != req.password:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Update last login time
+    # Auto-create new account for any Gmail/email during demo.
+    if not creds:
+        display_name = username.split("@")[0] if "@" in username else username
+        creds = {
+            "password": password,
+            "role": "operative",
+            "name": display_name,
+            "email": username,
+            "organization": "DeepFake Forensic Platform",
+            "biometrics_enrolled": True,
+            "biometrics_data": None,
+            "security_level": 2,
+            "registration_date": datetime.datetime.now().strftime("%Y-%m-%d"),
+        }
+        CREDENTIALS[username] = creds
+
     creds["last_login"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Track login audit trail
+
     audit_logs.append({
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "operator": req.username,
+        "operator": username,
         "action": "LOGIN_SUCCESS",
-        "details": f"Credentials approved. Role: {creds['role']}."
+        "details": f"Demo login approved. Role: {creds.get('role', 'operative')}."
     })
-    
-    token = base64.b64encode(f"{req.username}:{creds['role']}:{uuid.uuid4()}".encode()).decode()
+
+    token = base64.b64encode(
+        f"{username}:{creds.get('role', 'operative')}:{uuid.uuid4()}".encode()
+    ).decode()
+
     return LoginResponse(
-        success=True, 
-        token=token, 
-        role=creds["role"], 
-        username=req.username, 
+        success=True,
+        token=token,
+        role=creds.get("role", "operative"),
+        username=username,
         message="Authentication successful"
     )
 
