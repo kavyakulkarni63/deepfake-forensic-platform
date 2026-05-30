@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cyber-dark text-cyber-gray font-inter overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .g-card {
+    @apply bg-cyber-navy/80 backdrop-blur-md border border-cyber-cyan/20 rounded-xl p-6 shadow-glass relative overflow-hidden transition-all duration-300;
+  }
+  
+  .g-card:hover {
+    @apply border-cyber-cyan/40 shadow-neon-blue;
+  }
+
+  .sec-title {
+    @apply text-cyber-neon text-lg border-b border-cyber-neon/30 pb-2 mb-6 uppercase font-bold tracking-widest font-orbitron;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #020409;
+}
+::-webkit-scrollbar-thumb {
+  background: #00aaff;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff88;
+}
